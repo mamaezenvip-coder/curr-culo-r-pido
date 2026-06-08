@@ -190,7 +190,7 @@ function Criar() {
             className="bg-primary font-semibold shadow-[var(--shadow-red)] hover:bg-primary/90"
           >
             <Download className="mr-2 h-4 w-4" />
-            Baixar PDF
+            Gerar PDF
           </Button>
         </div>
       </header>
@@ -198,6 +198,24 @@ function Criar() {
       <div className="container mx-auto grid gap-6 px-4 py-6 lg:grid-cols-[1fr_1fr]">
         {/* Form */}
         <div className="space-y-5">
+          {/* Big CTA right at the top so it's impossible to miss */}
+          <div className="crystal rounded-2xl border-2 border-primary/40 p-4">
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-primary">
+              Pronto pra gerar? É só clicar aqui 👇
+            </p>
+            <Button
+              size="lg"
+              onClick={handleDownload}
+              className="h-14 w-full bg-primary text-base font-black uppercase tracking-wide shadow-[var(--shadow-red)] hover:bg-primary/90"
+            >
+              <Download className="mr-2 h-5 w-5" />
+              Gerar currículo em PDF
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Preencha os campos abaixo (ou grave um áudio) e clique pra baixar.
+            </p>
+          </div>
+
           {/* Audio block */}
           <Card title="Preencher por áudio (opcional)" icon={<Mic className="h-4 w-4" />}>
             <p className="text-xs text-muted-foreground">
