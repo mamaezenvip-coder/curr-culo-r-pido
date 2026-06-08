@@ -623,7 +623,7 @@ function updateList<
 ) {
   setter((prev) => {
     const next = [...prev[key]] as ResumeData[K];
-    (next[index] as Record<string, string>)[field as string] = value;
+    (next[index] as unknown as Record<string, string>)[field as string] = value;
     return { ...prev, [key]: next };
   });
 }
