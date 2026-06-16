@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -31,6 +31,7 @@ import {
   transcribeAudio,
   extractResumeData,
   whitenPhotoBackground,
+  enhanceResumeWithAI,
 } from "@/lib/cv.functions";
 import { emptyResume, type ResumeData } from "@/lib/resume-types";
 import { ResumePreview } from "@/components/ResumePreview";
@@ -67,10 +68,13 @@ function Criar() {
   const [transcribing, setTranscribing] = useState(false);
   const [recording, setRecording] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const [enhanced, setEnhanced] = useState(false);
 
   const transcribeFn = useServerFn(transcribeAudio);
   const extractFn = useServerFn(extractResumeData);
   const whitenFn = useServerFn(whitenPhotoBackground);
+  const enhanceFn = useServerFn(enhanceResumeWithAI);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -197,6 +201,48 @@ function Criar() {
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
+  const runEnhance = async () => {
+    if (!data.nome.trim()) {
+      toast.error("Preencha pelo menos seu nome antes.");
+      setStep(2);
+      return;
+    }
+    setEnhancing(true);
+    try {
+      toast.info("✨ A IA está deixando seu currículo profissional...");
+      const { data: better } = await enhanceFn({
+        data: {
+          raw: {
+            nome: data.nome,
+            profissao: data.profissao,
+            email: data.email,
+            telefone: data.telefone,
+            cidade: data.cidade,
+            resumo: data.resumo,
+            experiencias: data.experiencias,
+            formacao: data.formacao,
+            habilidades: data.habilidades,
+            idiomas: data.idiomas,
+          },
+        },
+      });
+      setData((d) => ({ ...d, ...(better as Partial<ResumeData>) }));
+      setEnhanced(true);
+      toast.success("Currículo turbinado! 🚀");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao melhorar");
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 5 && !enhanced && !enhancing && data.nome.trim()) {
+      void runEnhance();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   return (
     <div className="min-h-screen">
       {/* Top bar */}
@@ -252,6 +298,9 @@ function Criar() {
               data={{ ...data, fotoDataUrl: withPhoto ? data.fotoDataUrl : undefined }}
               onDownload={handleDownload}
               onPreview={() => setShowPreview(true)}
+              enhancing={enhancing}
+              enhanced={enhanced}
+              onEnhance={runEnhance}
             />
           )}
         </div>
@@ -859,23 +908,54 @@ function StepDone({
   data,
   onDownload,
   onPreview,
+  enhancing,
+  enhanced,
+  onEnhance,
 }: {
   data: ResumeData;
   onDownload: () => void;
   onPreview: () => void;
+  enhancing: boolean;
+  enhanced: boolean;
+  onEnhance: () => void;
 }) {
   return (
     <StepCard
       emoji="🎉"
-      title="Tudo pronto!"
-      subtitle="Veja como ficou e baixe seu currículo em PDF pra mandar pras empresas."
+      title={enhancing ? "A IA está montando..." : "Tudo pronto!"}
+      subtitle={
+        enhancing
+          ? "Aguarde uns segundinhos. A IA está deixando seu currículo profissional."
+          : "Veja como ficou e baixe seu currículo em PDF pra mandar pras empresas."
+      }
     >
       <div className="space-y-4">
+        {enhancing && (
+          <div className="flex items-center justify-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-6 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-sm font-semibold text-primary">
+              ✨ Profissionalizando textos, corrigindo erros e organizando tudo...
+            </span>
+          </div>
+        )}
         <div className="overflow-hidden rounded-2xl border border-border/60">
           <div className="origin-top scale-[0.6] md:scale-[0.75]" style={{ height: 600 }}>
             <ResumePreview d={data} />
           </div>
         </div>
+        <Button
+          onClick={onEnhance}
+          disabled={enhancing}
+          variant="outline"
+          className="h-12 w-full border-primary/60 text-base font-semibold text-primary hover:bg-primary/10"
+        >
+          {enhancing ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-5 w-5" />
+          )}
+          {enhanced ? "Melhorar de novo com IA" : "Melhorar com IA"}
+        </Button>
         <Button
           onClick={onPreview}
           variant="outline"
@@ -885,6 +965,7 @@ function StepDone({
         </Button>
         <Button
           onClick={onDownload}
+          disabled={enhancing}
           className="h-14 w-full bg-primary text-lg font-black uppercase shadow-[var(--shadow-red)] hover:bg-primary/90"
         >
           <Download className="mr-2 h-6 w-6" /> Baixar meu currículo
