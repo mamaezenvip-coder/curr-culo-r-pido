@@ -165,3 +165,93 @@ export const whitenPhotoBackground = createServerFn({ method: "POST" })
     }
     return { dataUrl: url };
   });
+
+/**
+ * Recebe os dados brutos preenchidos pelo usuário (que normalmente são
+ * curtos, com erros e pouco profissionais) e devolve uma versão polida
+ * pronta para um currículo profissional, SEM inventar fatos novos.
+ */
+export const enhanceResumeWithAI = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      raw: z.object({
+        nome: z.string().default(""),
+        profissao: z.string().default(""),
+        email: z.string().default(""),
+        telefone: z.string().default(""),
+        cidade: z.string().default(""),
+        resumo: z.string().default(""),
+        experiencias: z
+          .array(
+            z.object({
+              cargo: z.string().default(""),
+              empresa: z.string().default(""),
+              periodo: z.string().default(""),
+              descricao: z.string().default(""),
+            }),
+          )
+          .default([]),
+        formacao: z
+          .array(
+            z.object({
+              curso: z.string().default(""),
+              instituicao: z.string().default(""),
+              periodo: z.string().default(""),
+            }),
+          )
+          .default([]),
+        habilidades: z.array(z.string()).default([]),
+        idiomas: z.array(z.string()).default([]),
+      }),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const key = requireKey();
+
+    const system = `Você é um especialista em recrutamento brasileiro (RH/CLT).
+Sua tarefa: pegar os dados crus que o usuário preencheu (curtos, com erros de português, informais)
+e devolver uma versão PROFISSIONAL pronta para currículo, mantendo a verdade.
+
+REGRAS:
+- NUNCA invente empresas, cargos, datas, cursos ou habilidades que o usuário não escreveu.
+- Corrija ortografia, pontuação e capitalização (ex: "frentista" -> "Frentista", "harvard university" -> só mantenha se for verdade; caso pareça absurdo/improvável dado o resto do perfil, mantenha como o usuário escreveu mas com capitalização correta).
+- Reescreva o "resumo" em 2-3 frases profissionais em 1ª pessoa implícita (sem "Eu sou"), destacando atitude, responsabilidade e a vaga desejada. Se vazio, crie um resumo curto baseado na profissão e experiências reais.
+- Para cada experiência, reescreva "descricao" em 1-3 bullets curtos começando com verbo no passado/presente (Atendi, Operei, Organizei...). Se descrição vazia, gere 1-2 bullets GENÉRICOS e plausíveis para o cargo/empresa informado (ex: para "Atendente": "Atendimento ao cliente presencial", "Organização do ambiente de trabalho"). NÃO invente números, prêmios, métricas.
+- Capitalize nomes próprios (cidade, empresa, instituição, nome da pessoa).
+- Habilidades: transforme em lista profissional curta (ex: "sei fazer tudo" -> mantenha mas adicione 3-4 habilidades genéricas coerentes com a profissão como "Trabalho em equipe", "Pontualidade", "Proatividade", "Comunicação"). Máx 8 itens.
+- Idiomas: formate como "Português - Nativo", "Inglês - Básico" etc. Se só disser "Português", devolva "Português - Nativo".
+- Mantenha telefone e email exatamente como foram digitados (só formate telefone para (DD) 9XXXX-XXXX se possível).
+
+Responda APENAS JSON válido sem markdown, no MESMO formato dos dados de entrada.`;
+
+    const res = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: `Dados crus do usuário:\n${JSON.stringify(data.raw, null, 2)}\n\nDevolva o JSON profissional.`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Falha ao melhorar currículo (${res.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = await res.json();
+    const content: string = json?.choices?.[0]?.message?.content ?? "{}";
+    try {
+      return { data: JSON.parse(content) };
+    } catch {
+      return { data: data.raw };
+    }
+  });
