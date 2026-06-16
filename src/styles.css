@@ -148,8 +148,11 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     background-image:
+      /* Honeycomb pattern — bee hive vibes with red reflections */
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='84' height='96' viewBox='0 0 84 96'><g fill='none' stroke='%23e23b3b' stroke-opacity='0.18' stroke-width='1.4'><polygon points='42,2 78,22 78,62 42,82 6,62 6,22'/><polygon points='0,50 36,70 36,110 0,130 -36,110 -36,70'/><polygon points='84,50 120,70 120,110 84,130 48,110 48,70'/></g></svg>"),
       radial-gradient(ellipse at top, oklch(0.58 0.22 25 / 12%), transparent 60%),
       radial-gradient(ellipse at bottom right, oklch(0.58 0.22 25 / 8%), transparent 60%);
+    background-size: 84px 96px, auto, auto;
     background-attachment: fixed;
     min-height: 100vh;
   }
