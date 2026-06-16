@@ -908,23 +908,54 @@ function StepDone({
   data,
   onDownload,
   onPreview,
+  enhancing,
+  enhanced,
+  onEnhance,
 }: {
   data: ResumeData;
   onDownload: () => void;
   onPreview: () => void;
+  enhancing: boolean;
+  enhanced: boolean;
+  onEnhance: () => void;
 }) {
   return (
     <StepCard
       emoji="🎉"
-      title="Tudo pronto!"
-      subtitle="Veja como ficou e baixe seu currículo em PDF pra mandar pras empresas."
+      title={enhancing ? "A IA está montando..." : "Tudo pronto!"}
+      subtitle={
+        enhancing
+          ? "Aguarde uns segundinhos. A IA está deixando seu currículo profissional."
+          : "Veja como ficou e baixe seu currículo em PDF pra mandar pras empresas."
+      }
     >
       <div className="space-y-4">
+        {enhancing && (
+          <div className="flex items-center justify-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-6 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-sm font-semibold text-primary">
+              ✨ Profissionalizando textos, corrigindo erros e organizando tudo...
+            </span>
+          </div>
+        )}
         <div className="overflow-hidden rounded-2xl border border-border/60">
           <div className="origin-top scale-[0.6] md:scale-[0.75]" style={{ height: 600 }}>
             <ResumePreview d={data} />
           </div>
         </div>
+        <Button
+          onClick={onEnhance}
+          disabled={enhancing}
+          variant="outline"
+          className="h-12 w-full border-primary/60 text-base font-semibold text-primary hover:bg-primary/10"
+        >
+          {enhancing ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-5 w-5" />
+          )}
+          {enhanced ? "Melhorar de novo com IA" : "Melhorar com IA"}
+        </Button>
         <Button
           onClick={onPreview}
           variant="outline"
@@ -934,6 +965,7 @@ function StepDone({
         </Button>
         <Button
           onClick={onDownload}
+          disabled={enhancing}
           className="h-14 w-full bg-primary text-lg font-black uppercase shadow-[var(--shadow-red)] hover:bg-primary/90"
         >
           <Download className="mr-2 h-6 w-6" /> Baixar meu currículo
