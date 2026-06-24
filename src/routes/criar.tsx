@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -59,97 +59,16 @@ function Criar() {
   const [withPhoto, setWithPhoto] = useState(true);
   const [step, setStep] = useState(0);
   const [processingPhoto, setProcessingPhoto] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const [recording, setRecording] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
   const [template, setTemplate] = useState<TemplateId>("executivo");
 
-  const transcribeFn = useServerFn(transcribeAudio);
-  const extractFn = useServerFn(extractResumeData);
   const whitenFn = useServerFn(whitenPhotoBackground);
   const enhanceFn = useServerFn(enhanceResumeWithAI);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-
   const update = <K extends keyof ResumeData>(k: K, v: ResumeData[K]) =>
     setData((d) => ({ ...d, [k]: v }));
-
-  // ---------- Audio ----------
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      mediaRecorderRef.current = rec;
-      chunksRef.current = [];
-      rec.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
-      rec.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        await processAudioBlob(blob);
-      };
-      rec.start();
-      setRecording(true);
-    } catch {
-      toast.error("Não foi possível acessar o microfone.");
-    }
-  };
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-  };
-  const processAudioBlob = async (blob: Blob) => {
-    setTranscribing(true);
-    try {
-      const base64 = await blobToBase64(blob);
-      toast.info("Ouvindo seu áudio...");
-      const { text } = await transcribeFn({
-        data: { audioBase64: base64, mimeType: blob.type || "audio/webm" },
-      });
-      if (!text.trim()) {
-        toast.error("Não consegui entender. Tente falar mais perto do microfone.");
-        return;
-      }
-      toast.info("Montando seu currículo...");
-      const { data: extracted } = await extractFn({ data: { rawText: text } });
-      mergeExtracted(extracted);
-      toast.success("Pronto! Agora é só revisar.");
-      setStep(1);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao processar áudio");
-    } finally {
-      setTranscribing(false);
-    }
-  };
-  const mergeExtracted = (e: Partial<ResumeData> & Record<string, unknown>) => {
-    setData((prev) => ({
-      ...prev,
-      nome: (e.nome as string) || prev.nome,
-      profissao: (e.profissao as string) || prev.profissao,
-      email: (e.email as string) || prev.email,
-      telefone: (e.telefone as string) || prev.telefone,
-      cidade: (e.cidade as string) || prev.cidade,
-      resumo: (e.resumo as string) || prev.resumo,
-      experiencias:
-        Array.isArray(e.experiencias) && e.experiencias.length
-          ? (e.experiencias as ResumeData["experiencias"])
-          : prev.experiencias,
-      formacao:
-        Array.isArray(e.formacao) && e.formacao.length
-          ? (e.formacao as ResumeData["formacao"])
-          : prev.formacao,
-      habilidades:
-        Array.isArray(e.habilidades) && e.habilidades.length
-          ? (e.habilidades as string[])
-          : prev.habilidades,
-      idiomas:
-        Array.isArray(e.idiomas) && e.idiomas.length
-          ? (e.idiomas as string[])
-          : prev.idiomas,
-    }));
-  };
 
   // ---------- Photo ----------
   const onPhotoChange = async (file: File | null) => {
@@ -181,7 +100,7 @@ function Criar() {
   const handleDownload = () => {
     if (!data.nome.trim()) {
       toast.error("Preencha pelo menos seu nome.");
-      setStep(2);
+      setStep(1);
       return;
     }
     const doc = generateResumePdf(
@@ -202,7 +121,7 @@ function Criar() {
   const runEnhance = async () => {
     if (!data.nome.trim()) {
       toast.error("Preencha pelo menos seu nome antes.");
-      setStep(2);
+      setStep(1);
       return;
     }
     setEnhancing(true);
@@ -235,7 +154,7 @@ function Criar() {
   };
 
   useEffect(() => {
-    if (step === 5 && !enhanced && !enhancing && data.nome.trim()) {
+    if (step === 4 && !enhanced && !enhancing && data.nome.trim()) {
       void runEnhance();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -269,16 +188,6 @@ function Criar() {
       <main className="container mx-auto px-4 py-6 pb-32">
         <div className="mx-auto max-w-2xl">
           {step === 0 && (
-            <StepStart
-              recording={recording}
-              transcribing={transcribing}
-              onRecord={startRecording}
-              onStop={stopRecording}
-              onUpload={processAudioBlob}
-              onType={() => setStep(1)}
-            />
-          )}
-          {step === 1 && (
             <StepPhoto
               withPhoto={withPhoto}
               setWithPhoto={setWithPhoto}
@@ -288,10 +197,10 @@ function Criar() {
               onRemove={() => update("fotoDataUrl", undefined)}
             />
           )}
-          {step === 2 && <StepData data={data} update={update} />}
-          {step === 3 && <StepExperience data={data} setData={setData} />}
-          {step === 4 && <StepEducation data={data} setData={setData} />}
-          {step === 5 && (
+          {step === 1 && <StepData data={data} update={update} />}
+          {step === 2 && <StepExperience data={data} setData={setData} />}
+          {step === 3 && <StepEducation data={data} setData={setData} />}
+          {step === 4 && (
             <StepDone
               data={{ ...data, fotoDataUrl: withPhoto ? data.fotoDataUrl : undefined }}
               onDownload={handleDownload}
