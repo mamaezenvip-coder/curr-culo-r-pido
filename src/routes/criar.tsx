@@ -919,6 +919,8 @@ function StepDone({
   enhancing,
   enhanced,
   onEnhance,
+  template,
+  setTemplate,
 }: {
   data: ResumeData;
   onDownload: () => void;
@@ -926,6 +928,8 @@ function StepDone({
   enhancing: boolean;
   enhanced: boolean;
   onEnhance: () => void;
+  template: TemplateId;
+  setTemplate: (t: TemplateId) => void;
 }) {
   return (
     <StepCard
@@ -946,9 +950,40 @@ function StepDone({
             </span>
           </div>
         )}
+        {/* Template picker */}
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <p className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
+            📄 Escolha o modelo
+          </p>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            {TEMPLATES.map((t) => {
+              const active = template === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTemplate(t.id)}
+                  className={`rounded-xl border-2 p-3 text-left transition-colors ${
+                    active
+                      ? "border-primary bg-primary/10"
+                      : "border-border/60 bg-background/40 hover:border-primary/50"
+                  }`}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-sm font-black">{t.name}</span>
+                    {active && <Check className="h-4 w-4 text-primary" />}
+                  </div>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {t.desc}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="overflow-hidden rounded-2xl border border-border/60">
           <div className="origin-top scale-[0.6] md:scale-[0.75]" style={{ height: 600 }}>
-            <ResumePreview d={data} />
+            <ResumePreview d={data} template={template} />
           </div>
         </div>
         <Button
