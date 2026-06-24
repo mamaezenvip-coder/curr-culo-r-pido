@@ -1,6 +1,13 @@
 import type { ResumeData } from "@/lib/resume-types";
+import type { TemplateId } from "@/lib/resume-templates";
 
-export function ResumePreview({ d }: { d: ResumeData }) {
+export function ResumePreview({ d, template = "executivo" }: { d: ResumeData; template?: TemplateId }) {
+  if (template === "minimalista") return <MinimalistaPreview d={d} />;
+  if (template === "moderno") return <ModernoPreview d={d} />;
+  return <ExecutivoPreview d={d} />;
+}
+
+function ExecutivoPreview({ d }: { d: ResumeData }) {
   return (
     <div
       className="mx-auto w-full max-w-[794px] bg-white text-zinc-800 shadow-2xl"
