@@ -36,6 +36,7 @@ import {
 import { emptyResume, type ResumeData } from "@/lib/resume-types";
 import { ResumePreview } from "@/components/ResumePreview";
 import { generateResumePdf } from "@/lib/generate-pdf";
+import { TEMPLATES, type TemplateId } from "@/lib/resume-templates";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({
@@ -70,6 +71,7 @@ function Criar() {
   const [showPreview, setShowPreview] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
+  const [template, setTemplate] = useState<TemplateId>("executivo");
 
   const transcribeFn = useServerFn(transcribeAudio);
   const extractFn = useServerFn(extractResumeData);
@@ -189,10 +191,13 @@ function Criar() {
       setStep(2);
       return;
     }
-    const doc = generateResumePdf({
-      ...data,
-      fotoDataUrl: withPhoto ? data.fotoDataUrl : undefined,
-    });
+    const doc = generateResumePdf(
+      {
+        ...data,
+        fotoDataUrl: withPhoto ? data.fotoDataUrl : undefined,
+      },
+      template,
+    );
     const safe = data.nome.replace(/[^a-zA-Z0-9 ]/g, "").trim() || "curriculo";
     doc.save(`Curriculo - ${safe}.pdf`);
     toast.success("PDF baixado! Bom trabalho 🎉");
@@ -301,6 +306,8 @@ function Criar() {
               enhancing={enhancing}
               enhanced={enhanced}
               onEnhance={runEnhance}
+              template={template}
+              setTemplate={setTemplate}
             />
           )}
         </div>
@@ -350,6 +357,7 @@ function Criar() {
             </div>
             <ResumePreview
               d={{ ...data, fotoDataUrl: withPhoto ? data.fotoDataUrl : undefined }}
+              template={template}
             />
           </div>
         </div>
