@@ -10,13 +10,9 @@ import {
   Eye,
   GraduationCap,
   Image as ImageIcon,
-  Keyboard,
   Loader2,
-  Mic,
   Plus,
-  Square,
   Trash2,
-  Upload,
   User,
   Briefcase,
   Sparkles,
@@ -28,8 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  transcribeAudio,
-  extractResumeData,
   whitenPhotoBackground,
   enhanceResumeWithAI,
 } from "@/lib/cv.functions";
@@ -53,7 +47,6 @@ export const Route = createFileRoute("/criar")({
 });
 
 const STEPS = [
-  { key: "inicio", label: "Começar", icon: Sparkles },
   { key: "foto", label: "Foto", icon: ImageIcon },
   { key: "dados", label: "Seus dados", icon: User },
   { key: "exp", label: "Experiência", icon: Briefcase },
